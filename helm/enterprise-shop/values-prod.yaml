@@ -1,0 +1,17 @@
+image:
+  tag: "1.0"
+  pullPolicy: Never
+
+replicaCount:
+  userService: 2
+  productService: 2
+  orderService: 2
+  paymentService: 2
+  notificationService: 2
+  apiGateway: 2
+  frontend: 2
+
+infrastructure:
+  postgres: 1
+  redis: 1
+  kafka: 1

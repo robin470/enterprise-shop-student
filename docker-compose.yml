@@ -1,0 +1,208 @@
+services:
+
+  # ---------------- INFRASTRUCTURE ----------------
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: shop
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  kafka:
+    image: bitnamilegacy/kafka:3.7
+    environment:
+      KAFKA_CFG_NODE_ID: "0"
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+
+  # ---------------- USER SERVICE ----------------
+
+  user-service:
+    image: enterprise-shop/user-service:1.0
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: users
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ---------------- PRODUCT SERVICE ----------------
+
+  product-service:
+  # Keep your existing configuration
+    ports:
+      - "8082:8082"
+    image: enterprise-shop/product-service:1.0
+    build:
+      context: .
+      dockerfile: services/product-service/Dockerfile
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: products
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ---------------- ORDER SERVICE ----------------
+
+  order-service:
+    image: enterprise-shop/order-service:1.0
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: orders
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ---------------- PAYMENT SERVICE ----------------
+
+  payment-service:
+    image: enterprise-shop/payment-service:1.0
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: payments
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ---------------- NOTIFICATION SERVICE ----------------
+
+  notification-service:
+    image: enterprise-shop/notification-service:1.0
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: notifications
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ---------------- API GATEWAY ----------------
+
+  api-gateway:
+    image: enterprise-shop/api-gateway:1.0
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      USER_SERVICE_URI: http://user-service:8081
+      PRODUCT_SERVICE_URI: http://product-service:8082
+      ORDER_SERVICE_URI: http://order-service:8083
+      PAYMENT_SERVICE_URI: http://payment-service:8084
+      NOTIFICATION_SERVICE_URI: http://notification-service:8085
+    depends_on:
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+
+  # ---------------- ANGULAR FRONTEND ----------------
+
+  frontend:
+    image: enterprise-shop/frontend:1.0
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  pgdata:
