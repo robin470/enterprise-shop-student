@@ -12,9 +12,8 @@ pipeline {
     }
 
     environment {
-        PATH = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
-
     stages {
         stage('Checkout') {
             steps {
@@ -89,6 +88,24 @@ pipeline {
                         docker logout
                     '''
                 }
+            }
+        }
+
+        stage('Deploy to Minikube') {
+            steps {
+                sh """
+                    kubectl config use-context minikube
+
+                    helm upgrade --install enterprise-shop ./helm/enterprise-shop \
+                        --namespace enterprise-shop \
+                        --values helm/enterprise-shop/values-dev.yaml \
+                        --set-string image.repositoryPrefix=robdocks123/enterprise-shop- \
+                        --set-string image.tag=${IMAGE_TAG} \
+                        --set image.pullPolicy=Always \
+                        --wait --timeout 5m
+
+                    kubectl get pods -n enterprise-shop
+                """
             }
         }
     }
