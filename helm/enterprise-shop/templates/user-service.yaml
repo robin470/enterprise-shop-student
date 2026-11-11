@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: enterprise-shop/user-service:{{ .Values.image.tag }}
+          image: {{ .Values.image.repositoryPrefix }}user-service:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8081

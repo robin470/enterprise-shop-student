@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: enterprise-shop/payment-service:{{ .Values.image.tag }}
+          image: {{ .Values.image.repositoryPrefix }}payment-service:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8084

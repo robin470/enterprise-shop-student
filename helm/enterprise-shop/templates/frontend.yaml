@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: enterprise-shop/frontend:{{ .Values.image.tag }}
+          image: {{ .Values.image.repositoryPrefix }}frontend:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 80

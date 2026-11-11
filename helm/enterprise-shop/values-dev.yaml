@@ -1,4 +1,5 @@
 image:
+  repositoryPrefix: "enterprise-shop/"
   tag: "1.0"
   pullPolicy: Never
 

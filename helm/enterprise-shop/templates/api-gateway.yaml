@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: enterprise-shop/api-gateway:{{ .Values.image.tag }}
+          image: {{ .Values.image.repositoryPrefix }}api-gateway:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8080

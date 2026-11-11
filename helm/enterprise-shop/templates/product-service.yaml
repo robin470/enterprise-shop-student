@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: product-service
-          image: enterprise-shop/product-service:{{ .Values.image.tag }}
+          image: {{ .Values.image.repositoryPrefix }}product-service:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 8082
