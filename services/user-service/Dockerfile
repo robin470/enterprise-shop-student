@@ -13,12 +13,12 @@ COPY services ./services
 RUN mvn -pl services/user-service -am clean package -DskipTests
 
 # Stage 2: Run the application
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
 # Create a non-root user
-RUN useradd --system --uid 1001 appuser
+RUN addgroup -S appgroup && adduser -S -u 1001 -G appgroup appuser
 
 # Copy the built JAR from the build stage
 COPY --from=build /app/services/user-service/target/user-service-0.1.0.jar app.jar

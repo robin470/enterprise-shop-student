@@ -8,11 +8,11 @@ COPY services ./services
 
 RUN mvn -pl services/notification-service -am clean package -DskipTests
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-RUN useradd --system --uid 1001 appuser
+RUN addgroup -S appgroup && adduser -S -u 1001 -G appgroup appuser
 
 COPY --from=build /app/services/notification-service/target/notification-service-0.1.0.jar app.jar
 
