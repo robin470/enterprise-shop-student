@@ -1,0 +1,24 @@
+discovery.kubernetes "enterprise_shop" {
+  role = "pod"
+
+  namespaces {
+    names = ["enterprise-shop"]
+  }
+
+  kubeconfig_file = "/etc/alloy/kubeconfig"
+}
+
+loki.source.kubernetes "enterprise_shop" {
+  targets    = discovery.kubernetes.enterprise_shop.targets
+  forward_to = [loki.write.local.receiver]
+
+  client {
+    kubeconfig_file = "/etc/alloy/kubeconfig"
+  }
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://host.docker.internal:3100/loki/api/v1/push"
+  }
+}

@@ -24,3 +24,12 @@ infra/terraform/.terraform/
 .env
 *.local
 .DS_Store
+
+# Local Kubernetes credentials
+alloy-kubeconfig
+
+# Terraform generated files
+infra/terraform-eks/.terraform/
+infra/terraform-eks/*.tfstate
+infra/terraform-eks/*.tfstate.*
+infra/terraform-eks/tfplan
