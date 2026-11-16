@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -14,16 +15,19 @@ pipeline {
     environment {
         PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+
                 script {
                     env.IMAGE_TAG = sh(
                         script: 'git rev-parse --short=7 HEAD',
                         returnStdout: true
                     ).trim()
                 }
+
                 echo "Building image tag: ${env.IMAGE_TAG}"
             }
         }
@@ -42,7 +46,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Build and Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(
@@ -50,14 +54,14 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USER',
                     passwordVariable: 'DOCKERHUB_TOKEN'
                 )]) {
-                    sh '''
-                        set +x
-                        echo "$DOCKERHUB_TOKEN" | docker login \
-                          -u "$DOCKERHUB_USER" --password-stdin
-                    '''
-
                     script {
                         try {
+                            sh '''
+                                set +x
+                                echo "$DOCKERHUB_TOKEN" | docker login \
+                                  -u "$DOCKERHUB_USER" --password-stdin
+                            '''
+
                             parallel(
                                 'API Gateway + User Service': {
                                     sh '''
